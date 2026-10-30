@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+.env.local
+.vercel/
+# Código original de Raúl: solo referencia local, no se sube
+referencia-raul/
