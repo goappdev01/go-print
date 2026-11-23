@@ -23,20 +23,22 @@ export function Client({ room }: { room: string }) {
   const [color, setColor] = useState<ColorMode>("bn");
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState("");
+  const [channel, setChannel] = useState("conectando");
   const pickedRef = useRef(picked);
   pickedRef.current = picked;
   const phaseRef = useRef(phase);
   phaseRef.current = phase;
 
   useEffect(() => {
-    const s = joinRoom(room, (m) => void onSignal(m));
+    const s = joinRoom(room, (m) => void onSignal(m), setChannel);
     signal.current = s;
     let tries = 0;
     const hello = () => s.send({ t: "hello", from: me, name: "Cliente" });
     hello();
+    // En 4G el WebSocket puede tardar en abrirse: damos 30 s antes de rendirnos.
     const timer = setInterval(() => {
       if (phaseRef.current !== "searching") return clearInterval(timer);
-      if (++tries >= 4) { setPhase("notfound"); clearInterval(timer); } else hello();
+      if (++tries >= 12) { setPhase("notfound"); clearInterval(timer); } else hello();
     }, 2500);
     return () => { clearInterval(timer); s.close(); link.current?.close(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,12 +141,19 @@ export function Client({ room }: { room: string }) {
         {station && <span className="muted">{station}</span>}
       </header>
 
-      {phase === "searching" && <div className="card center"><div className="spinner" /><p>Conectando con el locutorio…</p></div>}
+      {phase === "searching" && (
+        <div className="card center">
+          <div className="spinner" />
+          <p>Conectando con el locutorio…</p>
+          <p className="tiny muted">Servidor: {channel}</p>
+        </div>
+      )}
 
       {phase === "notfound" && (
         <div className="card center">
           <h2>No encontramos el locutorio</h2>
           <p>Pide al dependiente que abra la estación de recepción y vuelve a escanear el código QR.</p>
+          <p className="tiny muted">Servidor: {channel} · sala {room}</p>
           <button className="btn" onClick={() => location.reload()}>Reintentar</button>
         </div>
       )}

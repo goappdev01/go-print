@@ -14,9 +14,14 @@ const supabase = url && key ? createClient(url, key) : null;
 
 export const signalingMode: "supabase" | "local" = supabase ? "supabase" : "local";
 
-export function joinRoom(room: string, onMessage: (msg: SignalMessage) => void): Signal {
+export function joinRoom(
+  room: string,
+  onMessage: (msg: SignalMessage) => void,
+  onStatus: (status: string) => void = () => {},
+): Signal {
   const name = `gp-${room}`;
   if (!supabase) {
+    onStatus("LOCAL");
     // Modo local de pruebas: solo funciona entre pestañas del mismo navegador.
     const bc = new BroadcastChannel(name);
     bc.onmessage = (e) => onMessage(e.data as SignalMessage);
@@ -27,6 +32,7 @@ export function joinRoom(room: string, onMessage: (msg: SignalMessage) => void):
   let ready = false;
   channel.on("broadcast", { event: "m" }, ({ payload }) => onMessage(payload as SignalMessage));
   channel.subscribe((status) => {
+    onStatus(status);
     if (status !== "SUBSCRIBED") return;
     ready = true;
     for (const m of queue.splice(0)) void channel.send({ type: "broadcast", event: "m", payload: m });
